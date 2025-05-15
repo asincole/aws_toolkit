@@ -1,5 +1,5 @@
 use aws_runtime::env_config;
-use aws_types::{os_shim_internal, SdkConfig};
+use aws_types::{SdkConfig, os_shim_internal};
 use color_eyre::Result;
 use env_config::file;
 
