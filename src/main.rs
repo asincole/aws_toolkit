@@ -3,7 +3,6 @@ use color_eyre::Result;
 
 mod app;
 mod aws;
-mod list;
 mod search;
 #[cfg(test)]
 mod search_test;

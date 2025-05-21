@@ -144,7 +144,7 @@ impl<T> ScrollableList<T> {
                 self.filtered_indices.push(idx);
             }
         }
-        
+
         if let Some(selected) = self.state.selected() {
             if !self.filtered_indices.contains(&selected) {
                 if !self.filtered_indices.is_empty() {

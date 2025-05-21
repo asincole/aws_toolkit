@@ -1,8 +1,8 @@
 use crate::app::AppMode;
-use crate::aws::s3_client::S3Client;
 use crate::aws::AWS;
-use crate::list::ScrollableList;
+use crate::aws::s3_client::S3Client;
 use crate::search::SearchBar;
+use crate::ui::ScrollableList;
 use aws_sdk_s3::types::{Bucket, Object};
 use std::time::Instant;
 
@@ -139,10 +139,7 @@ impl AppState {
                     object.key().unwrap_or("Unknown").to_string()
                 });
             }
-            AppMode::PreviewObject => {
-                // No search in preview mode - do nothing
-                // This replaces the todo!() macro with a no-op
-            }
+            AppMode::PreviewObject => {}
         }
     }
 

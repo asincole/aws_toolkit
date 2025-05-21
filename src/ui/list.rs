@@ -1,15 +1,14 @@
-// ui/list.rs - List rendering for the application
-
+use super::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG, SELECTED_STYLE, TEXT_FG_COLOR};
 use crate::app::App;
-use crate::list::render_list;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Style, Stylize};
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
+use ratatui::layout::Rect;
+use ratatui::style::Style;
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget};
+use render::render_list;
 
-use super::{ALT_ROW_BG_COLOR, HEADER_STYLE, NORMAL_ROW_BG, SELECTED_STYLE, TEXT_FG_COLOR};
+mod render;
+pub mod scrollable_list;
 
-/// Render the bucket list
 pub fn render_bucket_list(app: &mut App, area: Rect, buf: &mut Buffer) {
     render_list(
         &mut app.state.bucket_list,
@@ -18,7 +17,6 @@ pub fn render_bucket_list(app: &mut App, area: Rect, buf: &mut Buffer) {
         NORMAL_ROW_BG,
         ALT_ROW_BG_COLOR,
         SELECTED_STYLE,
-        HEADER_STYLE,
         Style::default().fg(TEXT_FG_COLOR),
         |bucket, _| {
             bucket
@@ -29,25 +27,14 @@ pub fn render_bucket_list(app: &mut App, area: Rect, buf: &mut Buffer) {
     );
 }
 
-/// Render the object list
 pub fn render_object_list(app: &mut App, area: Rect, buf: &mut Buffer) {
-    let [list_area, preview_area] =
-        Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(area);
-
-    let preview_block = Block::default()
-        .title(format!(" {} ", "Preview object"))
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .render(preview_area, buf);
-
     render_list(
         &mut app.state.object_list,
-        list_area,
+        area,
         buf,
         NORMAL_ROW_BG,
         ALT_ROW_BG_COLOR,
         SELECTED_STYLE,
-        HEADER_STYLE,
         Style::default().fg(TEXT_FG_COLOR),
         |object, _| {
             let key = object.key().unwrap_or("Unknown");
@@ -67,38 +54,7 @@ pub fn render_object_list(app: &mut App, area: Rect, buf: &mut Buffer) {
     );
 }
 
-/// Render the preview
 pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
-    let [list_area, preview_content_area] =
-        Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(area);
-
-    // Render the object list on the left
-    render_list(
-        &mut app.state.object_list,
-        list_area,
-        buf,
-        NORMAL_ROW_BG,
-        ALT_ROW_BG_COLOR,
-        SELECTED_STYLE,
-        HEADER_STYLE,
-        Style::default().fg(TEXT_FG_COLOR),
-        |object, _| {
-            let key = object.key().unwrap_or("Unknown");
-            let size = object.size().unwrap_or(0);
-            let size_str = if size < 1024 {
-                format!("{}B", size)
-            } else if size < 1024 * 1024 {
-                format!("{:.2}KB", size as f64 / 1024.0)
-            } else if size < 1024 * 1024 * 1024 {
-                format!("{:.2}MB", size as f64 / (1024.0 * 1024.0))
-            } else {
-                format!("{:.2}GB", size as f64 / (1024.0 * 1024.0 * 1024.0))
-            };
-            format!("{} ({})", key, size_str)
-        },
-    );
-
-    // --- Preview Pane Rendering ---
     let object_name_for_title = app.state.current_object.as_deref().unwrap_or("N/A");
     let content_type_for_title = app
         .state
@@ -115,13 +71,13 @@ pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
-    // Get the actual inner area for content AFTER the block is defined
-    let preview_inner_drawing_area = preview_block.inner(preview_content_area);
-    preview_block.render(preview_content_area, buf); // Render the block frame
+    let preview_inner_drawing_area = preview_block.inner(area);
+    preview_block.render(area, buf);
 
     // Prepare display lines if they haven't been, or if width might have changed
     if app.state.object_preview.is_some() && app.state.processed_preview_lines.is_none() {
-        app.state.prepare_display_lines_for_preview(preview_inner_drawing_area.width);
+        app.state
+            .prepare_display_lines_for_preview(preview_inner_drawing_area.width);
     }
 
     if app.state.loading && app.state.current_object.is_some() {
@@ -152,8 +108,7 @@ pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
                 .max(0),
         );
 
-        let end_line_idx =
-            (start_line_idx + visible_lines_count).min(display_lines.len());
+        let end_line_idx = (start_line_idx + visible_lines_count).min(display_lines.len());
 
         for (i, line_text) in display_lines[start_line_idx..end_line_idx]
             .iter()
@@ -176,25 +131,23 @@ pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
         if display_lines.len() > visible_lines_count {
             let scrollable_content_height = display_lines.len() - visible_lines_count;
             if scrollable_content_height > 0 {
-                let scroll_percentage =
-                    start_line_idx as f64 / scrollable_content_height as f64;
+                let scroll_percentage = start_line_idx as f64 / scrollable_content_height as f64;
                 let scrollbar_track_height =
                     preview_inner_drawing_area.height.saturating_sub(0) as f64;
 
                 let mut scroll_thumb_pos =
                     (scrollbar_track_height * scroll_percentage).round() as u16;
-                scroll_thumb_pos = scroll_thumb_pos
-                    .min(preview_inner_drawing_area.height.saturating_sub(1));
+                scroll_thumb_pos =
+                    scroll_thumb_pos.min(preview_inner_drawing_area.height.saturating_sub(1));
 
                 let scrollbar_x = preview_inner_drawing_area.x
                     + preview_inner_drawing_area.width.saturating_sub(1);
                 if scrollbar_x >= preview_inner_drawing_area.x {
-                    buf.get_mut(
-                        scrollbar_x,
-                        preview_inner_drawing_area.y + scroll_thumb_pos,
-                    )
-                    .set_char('█')
-                    .set_style(Style::default().fg(super::BLUE.c500));
+                    buf.cell_mut((scrollbar_x, preview_inner_drawing_area.y + scroll_thumb_pos))
+                        .map(|cell| {
+                            cell.set_char('█')
+                                .set_style(Style::default().fg(super::BLUE.c500));
+                        });
                 }
             }
         }

@@ -1,6 +1,7 @@
 use crate::app::AppMode;
 use crate::app::actions::AppActions;
 use crate::app::state::AppState;
+use crate::ui::ScrollableList;
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use std::time::Duration;
@@ -84,7 +85,7 @@ impl EventHandler {
             KeyCode::Esc => {
                 if state.mode == AppMode::ObjectList {
                     state.mode = AppMode::BucketList;
-                    state.object_list = crate::list::ScrollableList::new("Bucket Contents");
+                    state.object_list = ScrollableList::new("Bucket Contents");
                     state.current_bucket = None;
                 } else if state.mode == AppMode::PreviewObject {
                     state.mode = AppMode::ObjectList;
@@ -213,15 +214,13 @@ impl EventHandler {
                 // Refresh the current view
                 match state.mode {
                     AppMode::BucketList => {
-                        state.bucket_list = crate::list::ScrollableList::new("S3 Buckets");
+                        state.bucket_list = ScrollableList::new("S3 Buckets");
                         actions.load_buckets(state).await?;
                     }
                     AppMode::ObjectList => {
                         if let Some(bucket_name) = &state.current_bucket {
-                            state.object_list = crate::list::ScrollableList::new(format!(
-                                "Contents of {}",
-                                bucket_name
-                            ));
+                            state.object_list =
+                                ScrollableList::new(format!("Contents of {}", bucket_name));
                             state.object_continuation_token = None;
                             actions.load_objects(state).await?;
                         }

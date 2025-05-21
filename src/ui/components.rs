@@ -1,5 +1,5 @@
-use crate::app::state::AppState;
 use crate::app::AppMode;
+use crate::app::state::AppState;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::palette::tailwind::SLATE;
@@ -27,7 +27,6 @@ pub fn render_notification_area(state: &AppState, area: Rect, buf: &mut Buffer) 
     )
     .bold()
     .render(area, buf);
-
 }
 
 /// Render the search bar
