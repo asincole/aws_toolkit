@@ -160,8 +160,9 @@ impl EventHandler {
                 // Load more items
                 match state.mode {
                     AppMode::BucketList => {
-                        // For buckets, we'd need to implement continuation if AWS supports it
-                        // Currently S3 doesn't support pagination for bucket listing in a standard way
+                        if state.bucket_continuation_token.is_some() {
+                            actions.load_buckets(state).await?;
+                        }
                     }
                     AppMode::ObjectList => {
                         if state.object_continuation_token.is_some() {

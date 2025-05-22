@@ -19,7 +19,14 @@ impl AppActions {
     /// Load S3 buckets into the application state
     pub async fn load_buckets(&self, state: &mut AppState) -> Result<()> {
         state.loading = true;
-        let buckets = state.s3_client.get_bucket_list().await?;
+        let (buckets, next_token) = state
+            .s3_client
+            .get_bucket_list(state.bucket_continuation_token.clone())
+            .await?;
+
+        state.bucket_list.set_has_more(next_token.is_some());
+        state.bucket_continuation_token = next_token;
+
         state.bucket_list.append_items(buckets);
 
         // Initialise filtered indices with all items
@@ -53,8 +60,8 @@ impl AppActions {
                 )
                 .await?;
 
-            state.object_continuation_token = next_token.clone();
             state.object_list.set_has_more(next_token.is_some());
+            state.object_continuation_token = next_token;
 
             // If this is a new search/prefix, clear existing items
             if state.current_prefix != prefix {
