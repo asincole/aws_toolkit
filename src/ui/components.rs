@@ -5,6 +5,8 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::palette::tailwind::SLATE;
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Borders, Paragraph, Widget};
+#[cfg(feature = "logging")]
+use tui_logger::{LogFormatter, TuiLoggerLevelOutput, TuiLoggerWidget};
 
 /// Render the header
 pub fn render_header(state: &AppState, area: Rect, buf: &mut Buffer) {
@@ -92,4 +94,20 @@ pub fn render_footer(area: Rect, buf: &mut Buffer, mode: &AppMode, status_messag
     };
 
     Paragraph::new(display_text).centered().render(area, buf);
+}
+
+#[cfg(feature = "logging")]
+pub fn render_logger(area: Rect, buf: &mut Buffer) {
+    let formatter: Option<Box<dyn LogFormatter>> = None;
+    TuiLoggerWidget::default()
+        .block(Block::bordered().title("Unfiltered TuiLoggerWidget"))
+        .opt_formatter(formatter)
+        .output_separator('|')
+        .output_timestamp(Some("%F %H:%M:%S%.3f".to_string()))
+        .output_level(Some(TuiLoggerLevelOutput::Long))
+        .output_target(false)
+        .output_file(false)
+        .output_line(false)
+        .style(Style::default().fg(Color::White))
+        .render(area, buf);
 }

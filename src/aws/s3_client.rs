@@ -1,8 +1,8 @@
-use aws_sdk_s3::types::{Bucket, Object};
 use aws_sdk_s3::Client;
+use aws_sdk_s3::types::{Bucket, Object};
 use aws_types::SdkConfig;
-use color_eyre::eyre::eyre;
 use color_eyre::Result;
+use color_eyre::eyre::eyre;
 
 #[derive(Debug)]
 pub struct S3Client {

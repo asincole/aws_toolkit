@@ -1,4 +1,6 @@
 use crate::app::{App, AppMode};
+#[cfg(feature = "logging")]
+use crate::ui::components::render_logger;
 use crate::ui::components::{
     render_footer, render_header, render_notification_area, render_search_bar,
 };
@@ -28,6 +30,16 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        #[cfg(feature = "logging")]
+        let [main_app_area, logger] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(area);
+
+        #[cfg(feature = "logging")]
+        render_logger(logger, buf);
+
+        #[cfg(not(feature = "logging"))]
+        let [main_app_area] = Layout::horizontal([Constraint::Fill(1)]).areas(area);
+
         let [
             header_area,
             notification_area,
@@ -41,7 +53,7 @@ impl Widget for &mut App {
             Constraint::Fill(1),
             Constraint::Length(1),
         ])
-        .areas(area);
+        .areas(main_app_area);
 
         render_header(&self.state, header_area, buf);
         render_notification_area(&self.state, notification_area, buf);

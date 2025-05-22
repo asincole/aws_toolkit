@@ -34,7 +34,11 @@ impl App {
 
         // Load initial buckets
         state.loading = true;
-        let buckets = state.s3_client.get_bucket_list().await?;
+        let (buckets, next_token) = state.s3_client.get_bucket_list(None).await?;
+
+        state.bucket_list.set_has_more(next_token.is_some());
+        state.bucket_continuation_token = next_token;
+
         state.bucket_list.append_items(buckets);
         state.bucket_list.filtered_indices = (0..state.bucket_list.items.len()).collect();
         state.bucket_list.first();
