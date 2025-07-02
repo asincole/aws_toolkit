@@ -9,6 +9,7 @@ mod search;
 #[cfg(test)]
 mod search_test;
 mod ui;
+mod util;
 
 #[tokio::main]
 async fn main() -> Result<()> {

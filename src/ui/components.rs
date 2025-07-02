@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, Borders, Paragraph, Widget};
 use tui_logger::{LogFormatter, TuiLoggerLevelOutput, TuiLoggerWidget};
 
 /// Render the header
-pub fn render_header(state: &AppState, area: Rect, buf: &mut Buffer) {
+pub fn render_header(area: Rect, buf: &mut Buffer) {
     Paragraph::new("AWS S3 Browser")
         .bold()
         .centered()
@@ -33,21 +33,24 @@ pub fn render_notification_area(state: &AppState, area: Rect, buf: &mut Buffer) 
 
 /// Render the search bar
 pub fn render_search_bar(state: &AppState, area: Rect, buf: &mut Buffer) {
-    if !state.search_bar.active && state.search_bar.query.is_empty() {
+    if (!state.s3_bucket.search_bar.active && state.s3_bucket.search_bar.query.is_empty())
+        || (!state.s3_object.search_bar.active && state.s3_object.search_bar.query.is_empty())
+    {
         return;
     }
 
-    let search_text = if state.search_bar.active {
+    let search_text = if state.s3_bucket.search_bar.active || state.s3_object.search_bar.active {
         match state.mode {
-            AppMode::BucketList => format!("Search buckets: {}_", state.search_bar.query),
-            AppMode::ObjectList => format!("Filter by prefix: {}_", state.search_bar.query),
-            AppMode::PreviewObject => String::from(""),
+            AppMode::BucketList => format!("Search buckets: {}_", state.s3_bucket.search_bar.query),
+            AppMode::ObjectList => {
+                format!("Filter by prefix: {}_", state.s3_object.search_bar.query)
+            } // AppMode::PreviewObject => String::from(""),
         }
     } else {
         match state.mode {
-            AppMode::BucketList => format!("Search buckets: {}", state.search_bar.query),
-            AppMode::ObjectList => format!("Prefix: {}", state.search_bar.query),
-            AppMode::PreviewObject => String::from(""),
+            AppMode::BucketList => format!("Search buckets: {}", state.s3_bucket.search_bar.query),
+            AppMode::ObjectList => format!("Prefix: {}", state.s3_object.search_bar.query),
+            // AppMode::PreviewObject => String::from(""),
         }
     };
 
@@ -81,10 +84,9 @@ pub fn render_footer(area: Rect, buf: &mut Buffer, mode: &AppMode, status_messag
         }
         AppMode::ObjectList => {
             "↑/↓: Navigate  Space: Load More  /: Filter by Prefix  Enter: Preview  Esc: Back  q: Quit"
-        }
-        AppMode::PreviewObject => {
-            "↑/↓: Scroll  PgUp/PgDn: Scroll Fast  d: Download  Esc: Back  q: Quit"
-        }
+        } // AppMode::PreviewObject => {
+          //     "↑/↓: Scroll  PgUp/PgDn: Scroll Fast  d: Download  Esc: Back  q: Quit"
+          // }
     };
 
     let display_text = if let Some(msg) = status_message {

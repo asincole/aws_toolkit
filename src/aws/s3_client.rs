@@ -16,7 +16,7 @@ impl S3Client {
     }
 
     pub async fn get_bucket_list(
-        &mut self,
+        &self,
         continuation_token: Option<String>,
     ) -> Result<(Vec<Bucket>, Option<String>)> {
         let mut request = self.client.list_buckets();

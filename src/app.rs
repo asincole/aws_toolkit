@@ -1,10 +1,11 @@
-use crate::app::actions::AppActions;
 use crate::app::events::EventHandler;
 use crate::app::state::AppState;
 use crate::aws::AWS;
 use crate::aws::s3_client::S3Client;
+use crate::ui;
 use color_eyre::Result;
 use ratatui::DefaultTerminal;
+use std::sync::Arc;
 use std::time::Duration;
 
 pub mod actions;
@@ -15,13 +16,11 @@ pub mod state;
 pub enum AppMode {
     BucketList,
     ObjectList,
-    PreviewObject,
 }
 
 #[derive(Debug)]
 pub struct App {
     pub state: AppState,
-    pub actions: AppActions,
     event_handler: EventHandler,
 }
 
@@ -30,23 +29,11 @@ impl App {
         let aws_config = AWS::new().await;
         let s3_client = S3Client::new(&aws_config.config);
 
-        let mut state = AppState::new(aws_config, s3_client);
+        let mut state = AppState::new(aws_config, Arc::new(s3_client));
 
-        // Load initial buckets
-        state.loading = true;
-        let (buckets, next_token) = state.s3_client.get_bucket_list(None).await?;
-
-        state.bucket_list.set_has_more(next_token.is_some());
-        state.bucket_continuation_token = next_token;
-
-        state.bucket_list.append_items(buckets);
-        state.bucket_list.filtered_indices = (0..state.bucket_list.items.len()).collect();
-        state.bucket_list.first();
-        state.loading = false;
-
+        state.s3_bucket.load_buckets().await?;
         Ok(Self {
             state,
-            actions: AppActions::new(),
             event_handler: EventHandler::new(),
         })
     }
@@ -54,13 +41,9 @@ impl App {
     pub async fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         while !self.state.exit {
             self.update();
-            terminal.draw(|frame| crate::ui::render(self, frame))?;
+            terminal.draw(|frame| ui::render(self, frame))?;
 
-            if self
-                .event_handler
-                .handle_events(&mut self.state, &mut self.actions)
-                .await?
-            {
+            if self.event_handler.handle_events(&mut self.state).await? {
                 // If true was returned, we need to redraw immediately
                 continue;
             }
@@ -74,7 +57,7 @@ impl App {
     fn update(&mut self) {
         // Clear status message after 3 seconds
         if let Some(time) = self.state.status_message_time {
-            if time.elapsed() > std::time::Duration::from_secs(3) {
+            if time.elapsed() > Duration::from_secs(3) {
                 self.state.status_message = None;
                 self.state.status_message_time = None;
             }

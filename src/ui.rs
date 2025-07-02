@@ -5,12 +5,12 @@ use crate::ui::components::{
     render_footer, render_header, render_notification_area, render_search_bar,
 };
 use crate::ui::list::{render_bucket_list, render_object_list, render_preview};
-use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::palette::tailwind::{BLUE, SLATE};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::Widget;
+use ratatui::Frame;
 
 mod components;
 mod list;
@@ -55,7 +55,7 @@ impl Widget for &mut App {
         ])
         .areas(main_app_area);
 
-        render_header(&self.state, header_area, buf);
+        render_header(header_area, buf);
         render_notification_area(&self.state, notification_area, buf);
         render_search_bar(&self.state, search_area, buf);
         render_footer(
@@ -70,18 +70,21 @@ impl Widget for &mut App {
                 render_bucket_list(self, main_area, buf);
             }
             AppMode::ObjectList => {
-                let [list_area, preview_content_area] =
-                    Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(main_area);
+                if self.state.s3_object.preview_object == true {
+                    let [list_area, preview_content_area] =
+                        Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
+                            .areas(main_area);
 
-                render_object_list(self, list_area, buf);
-                render_preview(self, preview_content_area, buf);
-            }
-            AppMode::PreviewObject => {
-                let [list_area, preview_content_area] =
-                    Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(main_area);
+                    render_object_list(self, list_area, buf);
+                    render_preview(self, preview_content_area, buf);
+                } else {
+                    let [list_area, preview_content_area] =
+                        Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
+                            .areas(main_area);
 
-                render_object_list(self, list_area, buf);
-                render_preview(self, preview_content_area, buf);
+                    render_object_list(self, list_area, buf);
+                    render_preview(self, preview_content_area, buf);
+                }
             }
         }
     }

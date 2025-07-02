@@ -1,5 +1,6 @@
 use super::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG, SELECTED_STYLE, TEXT_FG_COLOR};
 use crate::app::App;
+use crate::app::state::LoadingState;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -11,7 +12,7 @@ pub mod scrollable_list;
 
 pub fn render_bucket_list(app: &mut App, area: Rect, buf: &mut Buffer) {
     render_list(
-        &mut app.state.bucket_list,
+        &mut app.state.s3_bucket.bucket_list,
         area,
         buf,
         NORMAL_ROW_BG,
@@ -29,7 +30,7 @@ pub fn render_bucket_list(app: &mut App, area: Rect, buf: &mut Buffer) {
 
 pub fn render_object_list(app: &mut App, area: Rect, buf: &mut Buffer) {
     render_list(
-        &mut app.state.object_list,
+        &mut app.state.s3_object.object_list,
         area,
         buf,
         NORMAL_ROW_BG,
@@ -55,9 +56,15 @@ pub fn render_object_list(app: &mut App, area: Rect, buf: &mut Buffer) {
 }
 
 pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
-    let object_name_for_title = app.state.current_object.as_deref().unwrap_or("N/A");
+    let object_name_for_title = app
+        .state
+        .s3_object
+        .current_object
+        .as_deref()
+        .unwrap_or("N/A");
     let content_type_for_title = app
         .state
+        .s3_object
         .current_object_content_type
         .as_deref()
         .unwrap_or("Unknown");
@@ -75,17 +82,22 @@ pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
     preview_block.render(area, buf);
 
     // Prepare display lines if they haven't been, or if width might have changed
-    if app.state.object_preview.is_some() && app.state.processed_preview_lines.is_none() {
+    if app.state.s3_object.object_preview.is_some()
+        && app.state.s3_object.processed_preview_lines.is_none()
+    {
         app.state
+            .s3_object
             .prepare_display_lines_for_preview(preview_inner_drawing_area.width);
     }
 
-    if app.state.loading && app.state.current_object.is_some() {
+    if matches!(app.state.s3_object.loading_state, LoadingState::Loading)
+        && app.state.s3_object.current_object.is_some()
+    {
         Paragraph::new("Loading preview...")
             .style(Style::default().fg(TEXT_FG_COLOR))
             .centered()
             .render(preview_inner_drawing_area, buf);
-    } else if let Some(display_lines) = &app.state.processed_preview_lines {
+    } else if let Some(display_lines) = &app.state.s3_object.processed_preview_lines {
         if display_lines.is_empty() {
             Paragraph::new("[No content to display or empty object]")
                 .style(Style::default().fg(TEXT_FG_COLOR))
@@ -97,11 +109,11 @@ pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
         let visible_lines_count = preview_inner_drawing_area.height as usize;
 
         // Ensure scroll offset is valid
-        if app.state.preview_scroll_offset >= display_lines.len() {
-            app.state.preview_scroll_offset = display_lines.len().saturating_sub(1);
+        if app.state.s3_object.preview_scroll_offset >= display_lines.len() {
+            app.state.s3_object.preview_scroll_offset = display_lines.len().saturating_sub(1);
         }
 
-        let start_line_idx = app.state.preview_scroll_offset.min(
+        let start_line_idx = app.state.s3_object.preview_scroll_offset.min(
             display_lines
                 .len()
                 .saturating_sub(visible_lines_count)
@@ -151,7 +163,7 @@ pub fn render_preview(app: &mut App, area: Rect, buf: &mut Buffer) {
                 }
             }
         }
-    } else if app.state.current_object.is_some() {
+    } else if app.state.s3_object.current_object.is_some() {
         // Object selected, but no preview content (e.g. still loading initial)
         Paragraph::new("Processing preview...")
             .style(Style::default().fg(TEXT_FG_COLOR))
