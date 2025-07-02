@@ -1,5 +1,6 @@
-use crate::app::AppMode;
 use crate::app::state::AppState;
+use crate::app::AppMode;
+use crate::search::SearchBar;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::palette::tailwind::SLATE;
@@ -32,25 +33,22 @@ pub fn render_notification_area(state: &AppState, area: Rect, buf: &mut Buffer) 
 }
 
 /// Render the search bar
-pub fn render_search_bar(state: &AppState, area: Rect, buf: &mut Buffer) {
-    if (!state.s3_bucket.search_bar.active && state.s3_bucket.search_bar.query.is_empty())
-        || (!state.s3_object.search_bar.active && state.s3_object.search_bar.query.is_empty())
-    {
+pub fn render_search_bar(app_mode: &AppMode, search_bar: &SearchBar, area: Rect, buf: &mut Buffer) {
+    if !search_bar.active && search_bar.query.is_empty() {
         return;
     }
 
-    let search_text = if state.s3_bucket.search_bar.active || state.s3_object.search_bar.active {
-        match state.mode {
-            AppMode::BucketList => format!("Search buckets: {}_", state.s3_bucket.search_bar.query),
+    let search_text = if search_bar.active {
+        match app_mode {
+            AppMode::BucketList => format!("Search buckets: {}_", search_bar.query),
             AppMode::ObjectList => {
-                format!("Filter by prefix: {}_", state.s3_object.search_bar.query)
-            } // AppMode::PreviewObject => String::from(""),
+                format!("Filter by prefix: {}_", search_bar.query)
+            }
         }
     } else {
-        match state.mode {
-            AppMode::BucketList => format!("Search buckets: {}", state.s3_bucket.search_bar.query),
-            AppMode::ObjectList => format!("Prefix: {}", state.s3_object.search_bar.query),
-            // AppMode::PreviewObject => String::from(""),
+        match app_mode {
+            AppMode::BucketList => format!("Search buckets: {}", search_bar.query),
+            AppMode::ObjectList => format!("Prefix: {}", search_bar.query),
         }
     };
 

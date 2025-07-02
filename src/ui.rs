@@ -15,6 +15,7 @@ use ratatui::Frame;
 mod components;
 mod list;
 
+use crate::app::state::AppState;
 pub use list::scrollable_list::ScrollableList;
 
 // UI constants
@@ -55,22 +56,31 @@ impl Widget for &mut App {
         ])
         .areas(main_app_area);
 
+        let AppState {
+            mode,
+            s3_bucket,
+            s3_object,
+            status_message,
+            ..
+        } = &self.state;
+
         render_header(header_area, buf);
         render_notification_area(&self.state, notification_area, buf);
-        render_search_bar(&self.state, search_area, buf);
         render_footer(
             footer_area,
             buf,
-            &self.state.mode,
-            self.state.status_message.as_deref(),
+            mode,
+            status_message.as_deref(),
         );
 
         match self.state.mode {
             AppMode::BucketList => {
+                render_search_bar(mode, &s3_bucket.search_bar, search_area, buf);
                 render_bucket_list(self, main_area, buf);
             }
             AppMode::ObjectList => {
-                if self.state.s3_object.preview_object == true {
+                render_search_bar(mode, &s3_object.search_bar, search_area, buf);
+                if s3_object.preview_object == true {
                     let [list_area, preview_content_area] =
                         Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
                             .areas(main_area);

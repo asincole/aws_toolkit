@@ -88,8 +88,8 @@ impl S3BucketState {
                     self.apply_current_search();
                 }
                 AppActions::Enter => {
-                    self.search_bar.toggle();
                     self.apply_current_search();
+                    self.search_bar.toggle();
                 }
                 AppActions::GoBack => {
                     self.search_bar.toggle();
