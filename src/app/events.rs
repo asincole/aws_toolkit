@@ -20,7 +20,13 @@ impl EventHandler {
         if event::poll(Duration::from_millis(100))? {
             match event::read()? {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                    self.handle_key_event(key_event.into(), state).await?;
+                    let search_active = match state.mode {
+                        AppMode::BucketList => state.s3_bucket.search_bar.active,
+                        AppMode::ObjectList => state.s3_object.search_bar.active,
+                    };
+
+                    let action = AppActions::from_key_event(key_event, search_active);
+                    self.handle_key_event(action, state).await?;
                     return Ok(true);
                 }
                 _ => {}

@@ -60,25 +60,38 @@ impl Widget for &mut App {
             mode,
             s3_bucket,
             s3_object,
-            status_message,
             ..
         } = &self.state;
 
         render_header(header_area, buf);
         render_notification_area(&self.state, notification_area, buf);
-        render_footer(
-            footer_area,
-            buf,
-            mode,
-            status_message.as_deref(),
-        );
 
         match self.state.mode {
             AppMode::BucketList => {
+                let helper_text = if s3_bucket.search_bar.active {
+                    "Type to search buckets  Enter: Apply  Esc: Cancel  Backspace: Delete"
+                } else {
+                    "j/k/↑/↓: Navigate  Enter: Select  Space: Load More  /: Search  g/G: Top/Bottom  r: Refresh  c: Clear Search  q: Quit"
+                };
                 render_search_bar(mode, &s3_bucket.search_bar, search_area, buf);
                 render_bucket_list(self, main_area, buf);
+                render_footer(footer_area, buf, helper_text);
             }
             AppMode::ObjectList => {
+                let helper_text = match (s3_object.search_bar.active, s3_object.preview_object) {
+                    (false, true) => {
+                        "j/k/↑/↓: Scroll  Ctrl+d/u: Half Page  Ctrl+f/b: Full Page  g/G: Top/Bottom  d/s/w: Download  r: Refresh  Esc: Back  q: Quit"
+                    }
+                    (true, false) => {
+                        "Type to filter by prefix  Enter: Apply  Esc: Cancel  Backspace: Delete"
+                    }
+                    (false, false) => {
+                        "j/k/↑/↓: Navigate  Enter: Preview  Space: Load More  /: Filter  d/s/w: Download  r: Refresh  c: Clear Filter  Esc: Back  q: Quit"
+                    }
+                    // both states above cannot be true at the same time
+                    _ => "",
+                };
+
                 render_search_bar(mode, &s3_object.search_bar, search_area, buf);
                 if s3_object.preview_object == true {
                     let [list_area, preview_content_area] =
@@ -95,6 +108,7 @@ impl Widget for &mut App {
                     render_object_list(self, list_area, buf);
                     render_preview(self, preview_content_area, buf);
                 }
+                render_footer(footer_area, buf, helper_text);
             }
         }
     }

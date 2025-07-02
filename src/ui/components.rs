@@ -74,26 +74,9 @@ pub fn render_search_bar(app_mode: &AppMode, search_bar: &SearchBar, area: Rect,
     }
 }
 
-/// Render the footer
-pub fn render_footer(area: Rect, buf: &mut Buffer, mode: &AppMode, status_message: Option<&str>) {
-    let help_text = match mode {
-        AppMode::BucketList => {
-            "↑/↓: Navigate  Enter: Select  Space: Load More  /: Search  g/G: Top/Bottom  q: Quit"
-        }
-        AppMode::ObjectList => {
-            "↑/↓: Navigate  Space: Load More  /: Filter by Prefix  Enter: Preview  Esc: Back  q: Quit"
-        } // AppMode::PreviewObject => {
-          //     "↑/↓: Scroll  PgUp/PgDn: Scroll Fast  d: Download  Esc: Back  q: Quit"
-          // }
-    };
-
-    let display_text = if let Some(msg) = status_message {
-        msg
-    } else {
-        help_text
-    };
-
-    Paragraph::new(display_text).centered().render(area, buf);
+/// Render the footer with context-aware help based on app state
+pub fn render_footer(area: Rect, buf: &mut Buffer, helper_text: &str) {
+    Paragraph::new(helper_text).centered().render(area, buf);
 }
 
 #[cfg(feature = "logging")]
